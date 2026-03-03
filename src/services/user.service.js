@@ -23,7 +23,7 @@ async function addUser(email, password, activationToken = false) {
 async function getUserByToken(token) {
   const user = await User.findOne({
     where: {
-      token,
+      activationToken: token,
     },
   });
 
@@ -32,6 +32,7 @@ async function getUserByToken(token) {
 
 async function getUserByResetToken(resetToken) {
   const user = await User.findOne({ where: { resetToken } });
+
   return user;
 }
 

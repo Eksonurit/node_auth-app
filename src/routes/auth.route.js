@@ -10,3 +10,5 @@ authRouter.post('/logout', authController.logout);
 authRouter.post('/refresh', authController.refreshenToken);
 authRouter.post('/forgot-password', authController.forgotPassword);
 authRouter.post('/reset-password', authController.resetPassword);
+
+authRouter.patch('/profile/password', authController.updatePassword);

@@ -13,16 +13,19 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    // Беремо адресу фронта з .env (у тебе там http://localhost:5173)
     origin: process.env.CLIENT_HOST,
-    // Дозволяємо передачу кук
     credentials: true,
-    // Дозволяємо стандартні методи
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    // Дозволяємо заголовки, які зазвичай потрібні для авторизації
     allowedHeaders: ['Content-Type', 'Authorization'],
   }),
 );
 app.use(authRouter);
+
+app.use((req, res) => {
+  res.status(404).send({
+    message: 'Resource not found',
+    error: 404,
+  });
+});
 
 app.listen(3005);

@@ -78,7 +78,7 @@ const activate = async (req, res) => {
     return;
   }
 
-  user.token = null;
+  user.activationToken = null;
 
   await user.save();
 
@@ -94,7 +94,7 @@ const login = async (req, res) => {
     return res.sendStatus(401);
   }
 
-  if (user.token) {
+  if (user.activationToken) {
     return res.status(400).send('Please activate your email');
   }
 
@@ -169,11 +169,13 @@ const refreshenToken = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
   const user = await userService.getUserByEmail(email);
 
-  if (!user) {
-    return res.status(404).send('404');
+  const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+  if (!user || !isPasswordCorrect) {
+    return res.status(404).send('wrong password or email');
   }
 
   const resetToken = uuidv4();
@@ -202,6 +204,89 @@ const resetPassword = async (req, res) => {
   res.sendStatus(200);
 };
 
+const updateName = async (req, res) => {
+  const { newName } = req.body;
+  const { refreshToken } = req.cookies;
+
+  const token = await tokenService.getUserByToken(refreshToken);
+
+  const user = await userService.getById(token.userId);
+
+  if (!user) {
+    return res.status(404).send('Something went wrong');
+  }
+
+  user.name = newName;
+
+  await user.save();
+
+  res.sendStatus(200);
+};
+const emailUpdate = async (req, res) => {
+  const { newEmail, password } = req.body;
+  const { refreshToken } = req.cookies;
+
+  const userToken = await tokenService.findByToken(refreshToken);
+
+  if (!userToken) {
+    return res.status(401).send('wrong token');
+  }
+
+  const user = await userService.getById(userToken.userId);
+
+  if (!user) {
+    return res.sendStatus(404);
+  }
+
+  const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordCorrect) {
+    return res.status(401).send('wrong password');
+  }
+
+  const isEmailBooked = userService.getUserByEmail(newEmail);
+
+  if (isEmailBooked) {
+    return res.status(409).send('this email is already used');
+  }
+
+  const activationToken = uuidv4();
+
+  user.email = newEmail;
+  user.activationToken = activationToken;
+};
+
+const updatePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const { refreshToken } = req.cookies;
+
+  const userToken = await tokenService.findByToken(refreshToken);
+
+  if (!userToken) {
+    return res.status(401).send('wrong token');
+  }
+
+  const user = await userService.getById(userToken.userId);
+
+  if (!user) {
+    return res.sendStatus(404);
+  }
+
+  const isOldPasswordCorrect = await bcrypt.compare(oldPassword, user.password);
+
+  if (!isOldPasswordCorrect) {
+    return res.status(401).send('wrong password');
+  }
+
+  const newHashedPassword = await bcrypt.hash(newPassword, 10);
+
+  user.password = newHashedPassword;
+
+  await user.save();
+
+  res.sendStatus(200);
+};
+
 export const authController = {
   registration,
   activate,
@@ -210,4 +295,7 @@ export const authController = {
   refreshenToken,
   forgotPassword,
   resetPassword,
+  updatePassword,
+  emailUpdate,
+  updateName,
 };
