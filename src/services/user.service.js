@@ -10,11 +10,12 @@ async function getUserByEmail(email) {
   }
 }
 
-async function addUser(email, password, activationToken = false) {
+async function addUser(email, password, activationToken = false, name) {
   const newUser = await User.create({
     email,
     password,
     activationToken,
+    name,
   });
 
   return newUser;

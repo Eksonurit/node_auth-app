@@ -28,7 +28,7 @@ const validatePassword = (value) => {
 };
 
 const registration = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, name } = req.body;
 
   const errors = {
     password: validatePassword(password),
@@ -56,6 +56,7 @@ const registration = async (req, res) => {
     email,
     hashedPassword,
     activationToken,
+    name,
   );
 
   await emailService.sendActivationEmail(email, activationToken);
@@ -169,13 +170,11 @@ const refreshenToken = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  const { email, password } = req.body;
+  const { email } = req.body;
   const user = await userService.getUserByEmail(email);
 
-  const isPasswordCorrect = await bcrypt.compare(password, user.password);
-
-  if (!user || !isPasswordCorrect) {
-    return res.status(404).send('wrong password or email');
+  if (!user) {
+    return res.status(404).send('wrong email');
   }
 
   const resetToken = uuidv4();
@@ -188,7 +187,12 @@ const forgotPassword = async (req, res) => {
 };
 
 const resetPassword = async (req, res) => {
-  const { newPassword, resetToken } = req.body;
+  const { newPassword, resetToken, confirmPassword } = req.body;
+
+  if (newPassword !== confirmPassword) {
+    return res.status(401).send('passwords do not match');
+  }
+
   const user = await userService.getUserByResetToken(resetToken);
 
   if (!user) {
